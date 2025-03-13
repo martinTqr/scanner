@@ -42,36 +42,49 @@ export class DocumentAiService {
       };
       const [result] = await this.client.processDocument(request);
       const processorSchema = await this.getProcessorSchema();
+
+      const parseResult = result.document.entities.map(this.parseResult);
+
       const processorFields = this.extractProcessorFields(
         processorSchema.documentSchema.entityTypes,
       );
-      this.parseFields(result.document.entities, processorFields);
       console.log(processorFields);
-      return processorFields;
+      // const items = parseResult.filter((res) => res.properties.length);
+      // this.parseItemsFields(items);
+      return { fields: processorFields, res: parseResult };
     } catch (error) {
       console.error('Error al procesar el documento:', error);
       throw error;
     }
   }
 
-  async parseFields(
-    entities: google.cloud.documentai.v1beta3.Document.IEntity[],
-    processorFields: any,
-  ) {
-    entities.forEach(
-      ({ type, normalizedValue, mentionText, confidence, properties }) => {
-        processorFields.forEach((field) => {
-          if (type === field.name) {
-            field.value = {
-              ...normalizedValue,
-              mentionText: mentionText,
-              confidence: confidence,
-            };
-            if (properties.length) this.parseFields(properties, field.childs);
-          }
-        });
-      },
-    );
+  // parseItemsFields(
+  //   entities: Partial<google.cloud.documentai.v1beta3.Document.IEntity>[],
+  //   processorFields: any,
+  // ) {
+  //   entities, processorFields;
+  // }
+
+  parseResult(data: google.cloud.documentai.v1beta3.Document.IEntity) {
+    return {
+      properties: data.properties.length
+        ? data.properties.map((prop) => ({
+            properties: [],
+            type: prop.type,
+            mentionText: prop.mentionText,
+            mentionId: prop.mentionId,
+            confidence: prop.confidence,
+            id: prop.id,
+            normalizedValue: prop.normalizedValue,
+          }))
+        : [],
+      type: data.type,
+      mentionText: data.mentionText,
+      mentionId: data.mentionId,
+      confidence: data.confidence,
+      id: data.id,
+      normalizedValue: data.normalizedValue,
+    };
   }
 
   async getProcessorSchema(): Promise<google.cloud.documentai.v1beta3.IDatasetSchema> {
@@ -97,7 +110,9 @@ export class DocumentAiService {
       entityTypesMap.set(et.name, et);
     });
 
-    function processProperties(properties) {
+    function processProperties(
+      properties: google.cloud.documentai.v1beta3.DocumentSchema.EntityType.IProperty[],
+    ) {
       const fields = [];
       for (const prop of properties) {
         const name = prop.name;
