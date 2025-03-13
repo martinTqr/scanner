@@ -15,25 +15,38 @@ export class Document {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar', length: 255 })
-  provider: string;
+  @Column({
+    nullable: true,
+    name: 'provider_name',
+    type: 'varchar',
+    length: 255,
+  })
+  providerName: string;
 
-  @Column({ name: 'provider_cuit', type: 'varchar', length: 255 })
+  @Column({
+    name: 'provider_cuit',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
   providerCuit: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ nullable: true, type: 'varchar', length: 255 })
   code: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ nullable: true, type: 'datetime' })
   date: string;
 
-  @Column({ name: 'expiration_date', type: 'varchar', length: 255 })
+  @Column({ nullable: true, name: 'expiration_date', type: 'datetime' })
   expirationDate: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ nullable: true, type: 'varchar', length: 255 })
   description: string;
 
-  @OneToMany(() => DocumentItem, (document) => document.document)
+  @OneToMany(() => DocumentItem, (document) => document.document, {
+    nullable: true,
+    eager: true,
+  })
   items: DocumentItem[];
 
   @CreateDateColumn({ name: 'created_at' })

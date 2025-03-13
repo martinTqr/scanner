@@ -28,9 +28,10 @@ export class DocumentItem {
   @Column({ type: 'int' })
   amount: number;
 
-  @ManyToOne(() => Document, (document) => document.items, { eager: true })
+  @ManyToOne(() => Document, (document) => document.items)
   @JoinColumn({ name: 'document_id' })
   document: Document;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

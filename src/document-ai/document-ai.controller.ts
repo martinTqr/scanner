@@ -13,9 +13,9 @@ import { DocumentAiService } from './document-ai.service';
 export class DocumentAiController {
   constructor(private readonly documentAiService: DocumentAiService) {}
 
-  @Get('processor-schema')
-  async getProcessorSchema(): Promise<any> {
-    return this.documentAiService.getProcessorSchema();
+  @Get()
+  async getDocuments() {
+    return this.documentAiService.getDocuments();
   }
 
   @Post('process')
