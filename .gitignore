@@ -44,3 +44,6 @@ lerna-debug.log*
 
 #Config
 service-account.json
+
+#Database
+.mysql_data
