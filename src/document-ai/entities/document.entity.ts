@@ -7,14 +7,14 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { DocumentItem } from './document-item.entity';
+import { DocumentTax } from '../../document-tax/entities/document-tax.entity';
+import { DocumentItem } from '../../document-item/entities/document-item.entity';
 
 // Use the same names for the fields in the process defined
 @Entity('document')
 export class Document {
   @PrimaryGeneratedColumn()
   id: number;
-
   @Column({
     nullable: true,
     name: 'provider_name',
@@ -48,6 +48,12 @@ export class Document {
     eager: true,
   })
   items: DocumentItem[];
+
+  @OneToMany(() => DocumentTax, (document) => document.document, {
+    nullable: true,
+    eager: true,
+  })
+  taxes?: DocumentTax[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

@@ -1,12 +1,14 @@
+import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
 import { google } from '@google-cloud/documentai/build/protos/protos';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { googleCloudConfig } from '../config/google-cloud.config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Document } from './entities/document.entity';
 import { Repository } from 'typeorm';
-import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
-import { DocumentItemService } from './document-item.service';
-import { NewDocumentItem } from './dto/document.item.dto';
+import { googleCloudConfig } from '../config/google-cloud.config';
+import { DocumentItemService } from '../document-item/document-item.service';
+import { NewDocumentItem } from '../document-item/dto/document.item.dto';
+import { Document } from './entities/document.entity';
+import { NewDocumentTax } from '../document-tax/dto/document.tax.dto';
+import { DocumentTaxService } from '../document-tax/document-tax.service';
 
 @Injectable()
 export class DocumentAiService {
@@ -17,6 +19,7 @@ export class DocumentAiService {
     @InjectRepository(Document)
     private _documentRepository: Repository<Document>,
     private _documentItemService: DocumentItemService,
+    private _documentTaxService: DocumentTaxService,
   ) {
     this.client = new DocumentProcessorServiceClient({
       keyFilename: googleCloudConfig.keyFilename,
@@ -28,10 +31,14 @@ export class DocumentAiService {
     return await this._documentRepository.find();
   }
 
-  async processDocument(file) {
-    const fields = await this.googleProcessDocument(file);
-    const document = await this.createNewDocument(fields);
-    return document;
+  async processDocuments(files: any[]) {
+    return Promise.all(
+      files.map(async (file) => {
+        const fields = await this.googleProcessDocument(file);
+        const doc = await this.createNewDocument(fields);
+        return doc;
+      }),
+    );
   }
 
   async googleProcessDocument(file): Promise<ParsedDocument[]> {
@@ -76,25 +83,51 @@ export class DocumentAiService {
       }
     });
     document.items = [];
-    const items = fields.filter((field) => field.type === 'items');
+    const {
+      items,
+      taxes,
+    }: { items: ParsedDocument[]; taxes: ParsedDocument[] } = fields.reduce(
+      (acum, field) => {
+        if (field.type === 'items' || field.type === 'taxes') {
+          acum[field.type].push(field);
+        }
+        return acum;
+      },
+      { items: [], taxes: [] },
+    );
+
     for (const item of items) {
       const documentItem = {};
       item.properties.forEach(
         (property) =>
-          (documentItem[property.type] = property.mentionText.replaceAll(
-            '\n',
-            ' ',
-          )),
+          (documentItem[property.type] = this.normalizedValue(property)),
       );
-      console.log(documentItem);
       const newDocumentItem =
         await this._documentItemService.createDocumentItem(
           documentItem as NewDocumentItem,
         );
-      console.log(newDocumentItem);
       document.items.push(newDocumentItem);
     }
+    document.taxes = [];
+    for (const tax of taxes) {
+      const documentTax = {};
+      tax.properties.forEach(
+        (property) =>
+          (documentTax[property.type] = this.normalizedValue(property)),
+      );
+      const newDocumentTax = await this._documentTaxService.createDocumentTax(
+        documentTax as NewDocumentTax,
+      );
+      document.taxes.push(newDocumentTax);
+    }
     return await this._documentRepository.save(document);
+  }
+
+  normalizedValue(property: ParsedDocument) {
+    return (
+      property.normalizedValue?.text ||
+      property.mentionText.replaceAll('\n', ' ')
+    );
   }
 
   parseResult(

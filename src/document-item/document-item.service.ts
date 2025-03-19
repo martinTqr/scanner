@@ -12,7 +12,7 @@ export class DocumentItemService {
   ) {}
 
   async createDocumentItem(data: NewDocumentItem) {
-    const documentItem = await this._documentItemRepository.create(data);
+    const documentItem = this._documentItemRepository.create(data);
     return await this._documentItemRepository.save(documentItem);
   }
 }

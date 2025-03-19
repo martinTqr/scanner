@@ -3,10 +3,10 @@ import {
   Controller,
   Get,
   Post,
-  UploadedFile,
+  UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { DocumentAiService } from './document-ai.service';
 
 @Controller('documents')
@@ -19,8 +19,8 @@ export class DocumentAiController {
   }
 
   @Post('process')
-  @UseInterceptors(FileInterceptor('file'))
-  async processDocument(@UploadedFile() file: any): Promise<any> {
-    return this.documentAiService.processDocument(file);
+  @UseInterceptors(FilesInterceptor('files'))
+  async processDocuments(@UploadedFiles() files: any[]): Promise<any> {
+    return this.documentAiService.processDocuments(files);
   }
 }

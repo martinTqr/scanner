@@ -8,7 +8,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Document } from './document.entity';
+import { Document } from '../../document-ai/entities/document.entity';
 
 // Use the same names for the fields in the process defined
 @Entity('document_item')
@@ -22,10 +22,10 @@ export class DocumentItem {
   @Column({ type: 'varchar', length: 255 })
   detail: string;
 
-  @Column({ type: 'int' })
+  @Column({ type: 'float' })
   quantity: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: 'float' })
   amount: number;
 
   @ManyToOne(() => Document, (document) => document.items)
