@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { DocumentTax } from '../../document-tax/entities/document-tax.entity';
 import { DocumentItem } from '../../document-item/entities/document-item.entity';
+import { DocumentType, ReceiptType } from '../intefaces/document-ai.interfaces';
 
 // Use the same names for the fields in the process defined
 @Entity('document')
@@ -54,6 +55,21 @@ export class Document {
     eager: true,
   })
   taxes?: DocumentTax[];
+
+  @Column({ type: 'enum', enum: DocumentType, nullable: true })
+  documentType: DocumentType;
+
+  @Column({ type: 'enum', enum: ReceiptType, nullable: true })
+  receiptType: ReceiptType;
+
+  @Column({ type: 'uuid' })
+  batch: string;
+
+  @Column({ name: 'file_name', type: 'varchar', length: 255, default: '' })
+  fileName?: string;
+
+  @Column({ name: 'user_id', type: 'varchar', length: 255, default: '' })
+  userId: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

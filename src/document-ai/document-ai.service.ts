@@ -9,7 +9,14 @@ import { NewDocumentItem } from '../document-item/dto/document.item.dto';
 import { Document } from './entities/document.entity';
 import { NewDocumentTax } from '../document-tax/dto/document.tax.dto';
 import { DocumentTaxService } from '../document-tax/document-tax.service';
-
+import { v4 as uuidv4 } from 'uuid';
+import {
+  DocumentType,
+  ParsedDocument,
+  ReceiptType,
+} from './intefaces/document-ai.interfaces';
+import { DocumentItem } from '../document-item/entities/document-item.entity';
+import { DocumentTax } from '../document-tax/entities/document-tax.entity';
 @Injectable()
 export class DocumentAiService {
   private readonly client: DocumentProcessorServiceClient;
@@ -32,16 +39,21 @@ export class DocumentAiService {
   }
 
   async processDocuments(files: any[]) {
+    const batchid = uuidv4();
     return Promise.all(
       files.map(async (file) => {
         const fields = await this.googleProcessDocument(file);
-        const doc = await this.createNewDocument(fields);
+        const doc = await this.createNewDocument({
+          fields,
+          batchid,
+          fileName: file.originalname,
+        });
         return doc;
       }),
     );
   }
 
-  async googleProcessDocument(file): Promise<ParsedDocument[]> {
+  async googleProcessDocument(file): Promise<any> {
     try {
       if (file.mimetype !== 'application/pdf')
         throw new BadRequestException('Solamente se aceptan pdfs');
@@ -65,12 +77,80 @@ export class DocumentAiService {
     }
   }
 
-  async createNewDocument(fields: ParsedDocument[]) {
+  async createNewDocument(data: {
+    fields: ParsedDocument[];
+    batchid: string;
+    fileName: string;
+  }) {
+    const { fields, batchid, fileName } = data;
     const document = this._documentRepository.create();
+    document.fileName = fileName;
+    document.batch = batchid;
+    this.formatFieldsValue(fields, document);
+
+    const { items, taxes } = this.getItemsAndTaxes(fields);
+    document.items = await this.createDocumentItems(items);
+    document.taxes = await this.createDocumentTaxes(taxes);
+    return await this._documentRepository.save(document);
+  }
+
+  async createDocumentTaxes(taxes: ParsedDocument[]): Promise<DocumentTax[]> {
+    const createdTaxes = [];
+    for (const tax of taxes) {
+      const documentTax = {};
+      tax.properties.forEach(
+        (property) => (documentTax[property.type] = this.getValue(property)),
+      );
+      const newDocumentTax = await this._documentTaxService.createDocumentTax(
+        documentTax as NewDocumentTax,
+      );
+      createdTaxes.push(newDocumentTax);
+    }
+    return createdTaxes;
+  }
+
+  async createDocumentItems(items: ParsedDocument[]): Promise<DocumentItem[]> {
+    const createdItems: DocumentItem[] = [];
+    for (const item of items) {
+      const documentItem = {};
+      item.properties.forEach(
+        (property) => (documentItem[property.type] = this.getValue(property)),
+      );
+      const newDocumentItem =
+        await this._documentItemService.createDocumentItem(
+          documentItem as NewDocumentItem,
+        );
+      createdItems.push(newDocumentItem);
+    }
+    return createdItems;
+  }
+
+  getItemsAndTaxes(fields: ParsedDocument[]): {
+    items: ParsedDocument[];
+    taxes: ParsedDocument[];
+  } {
+    return fields.reduce(
+      (acum, field) => {
+        if (field.type === 'items' || field.type === 'taxes') {
+          acum[field.type].push(field);
+        }
+        return acum;
+      },
+      { items: [], taxes: [] },
+    );
+  }
+
+  formatFieldsValue(fields: ParsedDocument[], document: Document) {
     fields.forEach(({ type, mentionText, normalizedValue }) => {
       document[type] = mentionText.replaceAll('\n', ' ');
       const normalizedValueFormat =
         normalizedValue as google.cloud.documentai.v1.Document.Entity.NormalizedValue;
+      if (type === 'receiptType') {
+        document[type] = this.normalizeReceiptType(document[type]);
+      }
+      if (type === 'documentType') {
+        document[type] = this.getDocumentType(document[type]);
+      }
       if (
         normalizedValueFormat &&
         normalizedValueFormat.structuredValue === 'dateValue'
@@ -82,48 +162,37 @@ export class DocumentAiService {
         );
       }
     });
-    document.items = [];
-    const {
-      items,
-      taxes,
-    }: { items: ParsedDocument[]; taxes: ParsedDocument[] } = fields.reduce(
-      (acum, field) => {
-        if (field.type === 'items' || field.type === 'taxes') {
-          acum[field.type].push(field);
-        }
-        return acum;
-      },
-      { items: [], taxes: [] },
-    );
-
-    for (const item of items) {
-      const documentItem = {};
-      item.properties.forEach(
-        (property) =>
-          (documentItem[property.type] = this.normalizedValue(property)),
-      );
-      const newDocumentItem =
-        await this._documentItemService.createDocumentItem(
-          documentItem as NewDocumentItem,
-        );
-      document.items.push(newDocumentItem);
-    }
-    document.taxes = [];
-    for (const tax of taxes) {
-      const documentTax = {};
-      tax.properties.forEach(
-        (property) =>
-          (documentTax[property.type] = this.normalizedValue(property)),
-      );
-      const newDocumentTax = await this._documentTaxService.createDocumentTax(
-        documentTax as NewDocumentTax,
-      );
-      document.taxes.push(newDocumentTax);
-    }
-    return await this._documentRepository.save(document);
   }
 
-  normalizedValue(property: ParsedDocument) {
+  normalizeReceiptType(receiptType: string): ReceiptType {
+    const cleanValue = receiptType.replace(/["'.]/g, '');
+    if (cleanValue.length === 1) return ReceiptType[cleanValue];
+    return null;
+  }
+
+  getDocumentType(text: string): DocumentType | null {
+    // Normalizar el texto: convertir a mayúsculas y eliminar tildes
+    const normalizedText = text
+      .normalize('NFD') // Descompone caracteres acentuados
+      .replace(/[\u0300-\u036f]/g, '') // Elimina los acentos
+      .toUpperCase()
+      .trim(); // Elimina espacios extras
+
+    for (const documentType of Object.values(DocumentType)) {
+      const enumWords = documentType.split(' ');
+
+      const allWordsMatch = enumWords.every((enumWord) =>
+        normalizedText.includes(enumWord),
+      );
+
+      if (allWordsMatch) {
+        return documentType as DocumentType;
+      }
+    }
+    return null;
+  }
+
+  getValue(property: ParsedDocument) {
     return (
       property.normalizedValue?.text ||
       property.mentionText.replaceAll('\n', ' ')
@@ -188,14 +257,4 @@ export class DocumentAiService {
 
     return processorFields;
   }
-}
-
-export interface ParsedDocument {
-  id: string;
-  type: string;
-  mentionText: string;
-  mentionId: string;
-  confidence: number;
-  normalizedValue: google.cloud.documentai.v1.Document.Entity.INormalizedValue;
-  properties: ParsedDocument[];
 }
