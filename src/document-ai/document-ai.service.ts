@@ -2,21 +2,22 @@ import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
 import { google } from '@google-cloud/documentai/build/protos/protos';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, FindOptionsWhere, Repository } from 'typeorm';
+import { v4 as uuidv4 } from 'uuid';
 import { googleCloudConfig } from '../config/google-cloud.config';
 import { DocumentItemService } from '../document-item/document-item.service';
 import { NewDocumentItem } from '../document-item/dto/document.item.dto';
-import { Document } from './entities/document.entity';
-import { NewDocumentTax } from '../document-tax/dto/document.tax.dto';
+import { DocumentItem } from '../document-item/entities/document-item.entity';
 import { DocumentTaxService } from '../document-tax/document-tax.service';
-import { v4 as uuidv4 } from 'uuid';
+import { NewDocumentTax } from '../document-tax/dto/document.tax.dto';
+import { DocumentTax } from '../document-tax/entities/document-tax.entity';
+import { GetDocumentDto } from './dto/document-ai.dto';
+import { Document } from './entities/document.entity';
 import {
   DocumentType,
   ParsedDocument,
   ReceiptType,
 } from './intefaces/document-ai.interfaces';
-import { DocumentItem } from '../document-item/entities/document-item.entity';
-import { DocumentTax } from '../document-tax/entities/document-tax.entity';
 @Injectable()
 export class DocumentAiService {
   private readonly client: DocumentProcessorServiceClient;
@@ -34,8 +35,21 @@ export class DocumentAiService {
     this.nameApi = `projects/${googleCloudConfig.projectId}/locations/${googleCloudConfig.location}/processors/${googleCloudConfig.processorId}`;
   }
 
-  async getDocuments(): Promise<Document[]> {
-    return await this._documentRepository.find();
+  async getDocuments(queryParams: GetDocumentDto): Promise<Document[]> {
+    const { startDate, endDate, ...rest } = queryParams;
+    const params = Object.keys(rest);
+    const filters: FindOptionsWhere<Document> = params.reduce((acum, key) => {
+      if (rest[key]) {
+        acum[key] = rest[key];
+      }
+      return acum;
+    }, {});
+
+    if (startDate || endDate) {
+      filters.date = Between(startDate, endDate);
+    }
+
+    return await this._documentRepository.findBy(filters);
   }
 
   async processDocuments(files: any[]) {
