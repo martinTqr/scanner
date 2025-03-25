@@ -18,6 +18,8 @@ import {
   ParsedDocument,
   ReceiptType,
 } from './intefaces/document-ai.interfaces';
+import * as fs from 'fs';
+import * as path from 'path';
 @Injectable()
 export class DocumentAiService {
   private readonly client: DocumentProcessorServiceClient;
@@ -49,7 +51,9 @@ export class DocumentAiService {
       filters.date = Between(startDate, endDate);
     }
 
-    return await this._documentRepository.findBy(filters);
+    return (await this._documentRepository.findBy(filters)).sort(
+      (a, b) => Number(new Date(b.createdAt)) - Number(new Date(a.createdAt)),
+    );
   }
 
   async processDocuments(files: any[]) {
@@ -62,6 +66,7 @@ export class DocumentAiService {
           batchid,
           fileName: file.originalname,
         });
+        this.savePdf(doc.id, file);
         return doc;
       }),
     );
@@ -80,13 +85,14 @@ export class DocumentAiService {
           mimeType: 'application/pdf',
         },
       };
+      console.log('googleProcessDocument request');
       const [result] = await this.client.processDocument(request);
 
       const parseResult = result.document.entities.map(this.parseResult);
 
       return parseResult;
     } catch (error) {
-      console.error('Error al procesar el documento:', error);
+      console.error('Error --> googleProcessDocument:', error);
       throw error;
     }
   }
@@ -101,10 +107,10 @@ export class DocumentAiService {
     document.fileName = fileName;
     document.batch = batchid;
     this.formatFieldsValue(fields, document);
-
     const { items, taxes } = this.getItemsAndTaxes(fields);
     document.items = await this.createDocumentItems(items);
     document.taxes = await this.createDocumentTaxes(taxes);
+    document.confidence = this.calculateDocConfidence(fields);
     return await this._documentRepository.save(document);
   }
 
@@ -126,6 +132,7 @@ export class DocumentAiService {
   async createDocumentItems(items: ParsedDocument[]): Promise<DocumentItem[]> {
     const createdItems: DocumentItem[] = [];
     for (const item of items) {
+      console.log(item);
       const documentItem = {};
       item.properties.forEach(
         (property) => (documentItem[property.type] = this.getValue(property)),
@@ -137,6 +144,32 @@ export class DocumentAiService {
       createdItems.push(newDocumentItem);
     }
     return createdItems;
+  }
+
+  savePdf(documentId: number, file: any) {
+    const base64 = file.buffer.toString('base64');
+    const fileBuffer = Buffer.from(base64, 'base64'); // If base64 encoded
+    const uploadDir = path.join(__dirname, '..', '..', 'uploads');
+
+    // Ensure the upload directory exists
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    const fileName = `${documentId}-${file.originalname}`;
+    const filePath = path.join(uploadDir, fileName);
+
+    // Save the file
+    fs.writeFileSync(filePath, fileBuffer);
+  }
+
+  calculateDocConfidence(fields: ParsedDocument[]) {
+    console.log(fields);
+    const confidence = fields.reduce(
+      (acum, field) => (acum += field.confidence),
+      0,
+    );
+    return confidence / fields.length;
   }
 
   getItemsAndTaxes(fields: ParsedDocument[]): {
@@ -207,10 +240,14 @@ export class DocumentAiService {
   }
 
   getValue(property: ParsedDocument) {
-    return (
+    let value;
+    value =
       property.normalizedValue?.text ||
-      property.mentionText.replaceAll('\n', ' ')
-    );
+      property.mentionText.replaceAll('\n', ' ');
+    if (property.type === 'quantity' || property.type === 'amount') {
+      value = parseFloat(value.replace(/,/g, '.'));
+    }
+    return value;
   }
 
   parseResult(

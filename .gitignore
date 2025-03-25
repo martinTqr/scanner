@@ -47,3 +47,4 @@ service-account.json
 
 #Database
 .mysql_data
+uploads

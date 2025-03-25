@@ -71,6 +71,9 @@ export class Document {
   @Column({ name: 'user_id', type: 'varchar', length: 255, default: '' })
   userId: string;
 
+  @Column({ type: 'float', nullable: true })
+  confidence?: number;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
