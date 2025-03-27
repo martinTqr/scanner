@@ -5,12 +5,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Between, FindOptionsWhere, Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { googleCloudConfig } from '../config/google-cloud.config';
-import { DocumentItemService } from '../document-item/document-item.service';
-import { NewDocumentItem } from '../document-item/dto/document.item.dto';
-import { DocumentItem } from '../document-item/entities/document-item.entity';
-import { DocumentTaxService } from '../document-tax/document-tax.service';
-import { NewDocumentTax } from '../document-tax/dto/document.tax.dto';
-import { DocumentTax } from '../document-tax/entities/document-tax.entity';
 import { GetDocumentDto } from './dto/document-ai.dto';
 import { Document } from './entities/document.entity';
 import {
@@ -20,6 +14,15 @@ import {
 } from './intefaces/document-ai.interfaces';
 import * as fs from 'fs';
 import * as path from 'path';
+import { DocumentDetailsService } from '../document-details/document-details.service';
+import { DocumentTaxService } from '../document-tax/document-tax.service';
+import { DocumentItemService } from '../document-item/document-item.service';
+import { DocumentTax } from '../document-tax/entities/document-tax.entity';
+import { DocumentItem } from '../document-item/entities/document-item.entity';
+import { NewDocumentItem } from '../document-item/dto/document.item.dto';
+import { NewDocumentTax } from '../document-tax/dto/document.tax.dto';
+import { NewDocumentDetails } from 'src/document-details/dto/document.details.dto';
+import { DocumentDetails } from 'src/document-details/entities/document-details.entity';
 @Injectable()
 export class DocumentAiService {
   private readonly client: DocumentProcessorServiceClient;
@@ -30,6 +33,7 @@ export class DocumentAiService {
     private _documentRepository: Repository<Document>,
     private _documentItemService: DocumentItemService,
     private _documentTaxService: DocumentTaxService,
+    private _documentDetailsService: DocumentDetailsService,
   ) {
     this.client = new DocumentProcessorServiceClient({
       keyFilename: googleCloudConfig.keyFilename,
@@ -54,6 +58,21 @@ export class DocumentAiService {
     return (await this._documentRepository.findBy(filters)).sort(
       (a, b) => Number(new Date(b.createdAt)) - Number(new Date(a.createdAt)),
     );
+  }
+
+  async getDocumentPdf(id: number): Promise<fs.ReadStream> {
+    const document = await this._documentRepository.findOneBy({ id });
+    if (!document) {
+      throw new BadRequestException('Documento no encontrado');
+    }
+    const file = fs.createReadStream(
+      path.join(
+        process.cwd(),
+        'uploads',
+        `${document.id}-${document.details.fileName}`,
+      ),
+    );
+    return file;
   }
 
   async processDocuments(files: any[]) {
@@ -104,14 +123,26 @@ export class DocumentAiService {
   }) {
     const { fields, batchid, fileName } = data;
     const document = this._documentRepository.create();
-    document.fileName = fileName;
-    document.batch = batchid;
+
     this.formatFieldsValue(fields, document);
     const { items, taxes } = this.getItemsAndTaxes(fields);
     document.items = await this.createDocumentItems(items);
     document.taxes = await this.createDocumentTaxes(taxes);
-    document.confidence = this.calculateDocConfidence(fields);
+    const confidence = this.calculateDocConfidence(fields);
+    document.details = await this._documentDetailsService.createDocumentDetail({
+      fileName,
+      batch: batchid,
+      //TODO: Cambiar userId por el usuario logueado
+      userId: '',
+      confidence,
+    });
     return await this._documentRepository.save(document);
+  }
+
+  async createDocumentDetails(
+    details: NewDocumentDetails,
+  ): Promise<DocumentDetails> {
+    return await this._documentDetailsService.createDocumentDetail(details);
   }
 
   async createDocumentTaxes(taxes: ParsedDocument[]): Promise<DocumentTax[]> {

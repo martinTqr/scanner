@@ -2,8 +2,10 @@
 import {
   Controller,
   Get,
+  Param,
   Post,
   Query,
+  Res,
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
@@ -18,6 +20,15 @@ export class DocumentAiController {
   @Get('')
   async getDocuments(@Query() queryParams: GetDocumentDto): Promise<any> {
     return this.documentAiService.getDocuments(queryParams);
+  }
+
+  @Get(':id/pdf')
+  async getDocumentPdf(@Param('id') id: number, @Res() res) {
+    const file = await this.documentAiService.getDocumentPdf(id);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="30-wtf.pdf"`);
+
+    file.pipe(res);
   }
 
   @Post('process')

@@ -1,14 +1,17 @@
+import { DocumentDetails } from '../../document-details/entities/document-details.entity';
 import {
   Column,
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  JoinColumn,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { DocumentTax } from '../../document-tax/entities/document-tax.entity';
 import { DocumentItem } from '../../document-item/entities/document-item.entity';
+import { DocumentTax } from '../../document-tax/entities/document-tax.entity';
 import { DocumentType, ReceiptType } from '../intefaces/document-ai.interfaces';
 
 // Use the same names for the fields in the process defined
@@ -16,6 +19,7 @@ import { DocumentType, ReceiptType } from '../intefaces/document-ai.interfaces';
 export class Document {
   @PrimaryGeneratedColumn()
   id: number;
+
   @Column({
     nullable: true,
     name: 'provider_name',
@@ -41,7 +45,7 @@ export class Document {
   @Column({ nullable: true, name: 'expiration_date', type: 'datetime' })
   expirationDate: string;
 
-  @Column({ nullable: true, type: 'varchar', length: 255 })
+  @Column({ nullable: true, type: 'varchar', length: 1000 })
   description: string;
 
   @OneToMany(() => DocumentItem, (document) => document.document, {
@@ -59,20 +63,16 @@ export class Document {
   @Column({ type: 'enum', enum: DocumentType, nullable: true })
   documentType: DocumentType;
 
+  @OneToOne(
+    () => DocumentDetails,
+    (documentDetails) => documentDetails.document,
+    { eager: true },
+  )
+  @JoinColumn({ name: 'document_id' })
+  details: DocumentDetails;
+
   @Column({ type: 'enum', enum: ReceiptType, nullable: true })
   receiptType: ReceiptType;
-
-  @Column({ type: 'uuid' })
-  batch: string;
-
-  @Column({ name: 'file_name', type: 'varchar', length: 255, default: '' })
-  fileName?: string;
-
-  @Column({ name: 'user_id', type: 'varchar', length: 255, default: '' })
-  userId: string;
-
-  @Column({ type: 'float', nullable: true })
-  confidence?: number;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
