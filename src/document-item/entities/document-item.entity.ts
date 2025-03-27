@@ -8,7 +8,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Document } from '../../document-ai/entities/document.entity';
+import { Document } from '../../document/entities/document.entity';
 
 // Use the same names for the fields in the process defined
 @Entity('document_item')
@@ -20,7 +20,7 @@ export class DocumentItem {
   name: string;
 
   @Column({ type: 'varchar', length: 255, default: '' })
-  detail: string;
+  description: string;
 
   @Column({ type: 'float', default: 0 })
   quantity: number;

@@ -10,21 +10,25 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { DocumentAiService } from './document-ai.service';
-import { GetDocumentDto } from './dto/document-ai.dto';
+import { DocumentAiService } from './services/document-ai.service';
+import { GetDocumentDto } from './dto/document.dto';
+import { DocumentService } from './services/document.service';
 
 @Controller('documents')
 export class DocumentAiController {
-  constructor(private readonly documentAiService: DocumentAiService) {}
+  constructor(
+    private readonly _documentAiService: DocumentAiService,
+    private readonly _documentService: DocumentService,
+  ) {}
 
   @Get('')
   async getDocuments(@Query() queryParams: GetDocumentDto): Promise<any> {
-    return this.documentAiService.getDocuments(queryParams);
+    return this._documentService.getDocuments(queryParams);
   }
 
   @Get(':id/pdf')
   async getDocumentPdf(@Param('id') id: number, @Res() res) {
-    const file = await this.documentAiService.getDocumentPdf(id);
+    const file = await this._documentService.getDocumentPdf(id);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="30-wtf.pdf"`);
 
@@ -34,6 +38,6 @@ export class DocumentAiController {
   @Post('process')
   @UseInterceptors(FilesInterceptor('files'))
   async processDocuments(@UploadedFiles() files: any[]): Promise<any> {
-    return this.documentAiService.processDocuments(files);
+    return this._documentAiService.processDocuments(files);
   }
 }

@@ -9,7 +9,7 @@ import {
   DATABASE_PORT,
   DATABASE_USERNAME,
 } from './config/constants';
-import { DocumentAiModule } from './document-ai/document-ai.module';
+import { DocumentAiModule } from './document/document.module';
 
 @Module({
   imports: [

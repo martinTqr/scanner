@@ -1,45 +1,34 @@
-import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
 import { google } from '@google-cloud/documentai/build/protos/protos';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as fs from 'fs';
+import * as path from 'path';
+import { NewDocumentDetails } from 'src/document-details/dto/document.details.dto';
+import { DocumentDetails } from 'src/document-details/entities/document-details.entity';
 import { Between, FindOptionsWhere, Repository } from 'typeorm';
-import { v4 as uuidv4 } from 'uuid';
-import { googleCloudConfig } from '../config/google-cloud.config';
-import { GetDocumentDto } from './dto/document-ai.dto';
-import { Document } from './entities/document.entity';
+import { DocumentDetailsService } from '../../document-details/document-details.service';
+import { DocumentItemService } from '../../document-item/document-item.service';
+import { NewDocumentItem } from '../../document-item/dto/document-item.dto';
+import { DocumentItem } from '../../document-item/entities/document-item.entity';
+import { DocumentTaxService } from '../../document-tax/document-tax.service';
+import { NewDocumentTax } from '../../document-tax/dto/document.tax.dto';
+import { DocumentTax } from '../../document-tax/entities/document-tax.entity';
+import { GetDocumentDto } from '../dto/document.dto';
+import { Document } from '../entities/document.entity';
 import {
   DocumentType,
   ParsedDocument,
   ReceiptType,
-} from './intefaces/document-ai.interfaces';
-import * as fs from 'fs';
-import * as path from 'path';
-import { DocumentDetailsService } from '../document-details/document-details.service';
-import { DocumentTaxService } from '../document-tax/document-tax.service';
-import { DocumentItemService } from '../document-item/document-item.service';
-import { DocumentTax } from '../document-tax/entities/document-tax.entity';
-import { DocumentItem } from '../document-item/entities/document-item.entity';
-import { NewDocumentItem } from '../document-item/dto/document.item.dto';
-import { NewDocumentTax } from '../document-tax/dto/document.tax.dto';
-import { NewDocumentDetails } from 'src/document-details/dto/document.details.dto';
-import { DocumentDetails } from 'src/document-details/entities/document-details.entity';
+} from '../intefaces/document-ai.interfaces';
 @Injectable()
-export class DocumentAiService {
-  private readonly client: DocumentProcessorServiceClient;
-  private readonly nameApi: string;
-
+export class DocumentService {
   constructor(
     @InjectRepository(Document)
     private _documentRepository: Repository<Document>,
     private _documentItemService: DocumentItemService,
     private _documentTaxService: DocumentTaxService,
     private _documentDetailsService: DocumentDetailsService,
-  ) {
-    this.client = new DocumentProcessorServiceClient({
-      keyFilename: googleCloudConfig.keyFilename,
-    });
-    this.nameApi = `projects/${googleCloudConfig.projectId}/locations/${googleCloudConfig.location}/processors/${googleCloudConfig.processorId}`;
-  }
+  ) {}
 
   async getDocuments(queryParams: GetDocumentDto): Promise<Document[]> {
     const { startDate, endDate, ...rest } = queryParams;
@@ -73,47 +62,6 @@ export class DocumentAiService {
       ),
     );
     return file;
-  }
-
-  async processDocuments(files: any[]) {
-    const batchid = uuidv4();
-    return Promise.all(
-      files.map(async (file) => {
-        const fields = await this.googleProcessDocument(file);
-        const doc = await this.createNewDocument({
-          fields,
-          batchid,
-          fileName: file.originalname,
-        });
-        this.savePdf(doc.id, file);
-        return doc;
-      }),
-    );
-  }
-
-  async googleProcessDocument(file): Promise<any> {
-    try {
-      if (file.mimetype !== 'application/pdf')
-        throw new BadRequestException('Solamente se aceptan pdfs');
-
-      const encodedImage = file.buffer.toString('base64');
-      const request = {
-        name: this.nameApi,
-        rawDocument: {
-          content: encodedImage,
-          mimeType: 'application/pdf',
-        },
-      };
-      console.log('googleProcessDocument request');
-      const [result] = await this.client.processDocument(request);
-
-      const parseResult = result.document.entities.map(this.parseResult);
-
-      return parseResult;
-    } catch (error) {
-      console.error('Error --> googleProcessDocument:', error);
-      throw error;
-    }
   }
 
   async createNewDocument(data: {
@@ -163,7 +111,6 @@ export class DocumentAiService {
   async createDocumentItems(items: ParsedDocument[]): Promise<DocumentItem[]> {
     const createdItems: DocumentItem[] = [];
     for (const item of items) {
-      console.log(item);
       const documentItem = {};
       item.properties.forEach(
         (property) => (documentItem[property.type] = this.getValue(property)),
@@ -195,7 +142,6 @@ export class DocumentAiService {
   }
 
   calculateDocConfidence(fields: ParsedDocument[]) {
-    console.log(fields);
     const confidence = fields.reduce(
       (acum, field) => (acum += field.confidence),
       0,

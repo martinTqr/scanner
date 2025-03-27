@@ -46,7 +46,7 @@ export class Document {
   expirationDate: string;
 
   @Column({ nullable: true, type: 'varchar', length: 1000 })
-  description: string;
+  observations: string;
 
   @OneToMany(() => DocumentItem, (document) => document.document, {
     nullable: true,

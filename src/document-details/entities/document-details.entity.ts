@@ -5,7 +5,7 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Document } from '../../document-ai/entities/document.entity';
+import { Document } from '../../document/entities/document.entity';
 
 @Entity('document_details')
 export class DocumentDetails {

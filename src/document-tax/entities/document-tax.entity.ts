@@ -1,4 +1,4 @@
-import { Document } from '../../document-ai/entities/document.entity';
+import { Document } from '../../document/entities/document.entity';
 import {
   Column,
   CreateDateColumn,
