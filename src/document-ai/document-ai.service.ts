@@ -275,7 +275,11 @@ export class DocumentAiService {
     value =
       property.normalizedValue?.text ||
       property.mentionText.replaceAll('\n', ' ');
-    if (property.type === 'quantity' || property.type === 'amount') {
+    if (
+      property.type === 'quantity' ||
+      property.type === 'amount' ||
+      property.type === 'unitPrice'
+    ) {
       value = parseFloat(value.replace(/,/g, '.'));
     }
     return value;

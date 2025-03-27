@@ -26,6 +26,12 @@ export class DocumentItem {
   quantity: number;
 
   @Column({ type: 'float', default: 0 })
+  unitPrice: number;
+
+  @Column({ type: 'varchar', length: 255, default: '' })
+  bonus: string;
+
+  @Column({ type: 'float', default: 0 })
   amount: number;
 
   @ManyToOne(() => Document, (document) => document.items)

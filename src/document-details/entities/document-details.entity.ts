@@ -1,12 +1,9 @@
 import {
   Column,
-  CreateDateColumn,
-  DeleteDateColumn,
   Entity,
+  JoinColumn,
   OneToOne,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
-  JoinColumn,
 } from 'typeorm';
 import { Document } from '../../document-ai/entities/document.entity';
 
@@ -30,13 +27,4 @@ export class DocumentDetails {
   @OneToOne(() => Document, (document) => document.details)
   @JoinColumn({ name: 'document_id' })
   document: Document;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
-  updatedAt: Date;
-
-  @DeleteDateColumn({ name: 'deleted_at' })
-  deletedAt: Date;
 }
