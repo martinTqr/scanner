@@ -20,6 +20,7 @@ import {
   ParsedDocument,
   ReceiptType,
 } from '../intefaces/document-ai.interfaces';
+import { ScannConfidenceService } from 'src/scann-confidence/scann-confidence.service';
 @Injectable()
 export class DocumentService {
   constructor(
@@ -27,6 +28,7 @@ export class DocumentService {
     private _documentRepository: Repository<Document>,
     private _documentItemService: DocumentItemService,
     private _documentTaxService: DocumentTaxService,
+    private _scannConfidenceService: ScannConfidenceService,
     private _documentDetailsService: DocumentDetailsService,
   ) {}
 
@@ -76,7 +78,8 @@ export class DocumentService {
     const { items, taxes } = this.getItemsAndTaxes(fields);
     document.items = await this.createDocumentItems(items);
     document.taxes = await this.createDocumentTaxes(taxes);
-    const confidence = this.calculateDocConfidence(fields);
+    const confidence =
+      await this._scannConfidenceService.calculateConfidence(document);
     document.details = await this._documentDetailsService.createDocumentDetail({
       fileName,
       batch: batchid,

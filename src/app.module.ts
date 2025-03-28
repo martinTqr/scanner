@@ -9,7 +9,8 @@ import {
   DATABASE_PORT,
   DATABASE_USERNAME,
 } from './config/constants';
-import { DocumentAiModule } from './document/document.module';
+import { DocumentModule } from './document/document.module';
+import { ScannConfidenceModule } from './scann-confidence/scann-confidence.module';
 
 @Module({
   imports: [
@@ -28,13 +29,12 @@ import { DocumentAiModule } from './document/document.module';
         synchronize: false,
       }),
     }),
-    DocumentAiModule,
+    DocumentModule,
+    ScannConfidenceModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
     }),
   ],
-  controllers: [],
-  providers: [],
 })
 export class AppModule {}

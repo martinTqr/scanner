@@ -16,19 +16,24 @@ export class DocumentAiService {
   }
 
   async processDocuments(files: any[]) {
-    const batchid = uuidv4();
-    return Promise.all(
-      files.map(async (file) => {
-        const fields = await this.googleProcessDocument(file);
-        const doc = await this._documentService.createNewDocument({
-          fields,
-          batchid,
-          fileName: file.originalname,
-        });
-        this._documentService.savePdf(doc.id, file);
-        return doc;
-      }),
-    );
+    try {
+      const batchid = uuidv4();
+      return Promise.all(
+        files.map(async (file) => {
+          const fields = await this.googleProcessDocument(file);
+          const doc = await this._documentService.createNewDocument({
+            fields,
+            batchid,
+            fileName: file.originalname,
+          });
+          this._documentService.savePdf(doc.id, file);
+          return doc;
+        }),
+      );
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException(e);
+    }
   }
 
   async googleProcessDocument(file): Promise<any> {

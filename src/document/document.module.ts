@@ -10,6 +10,7 @@ import { DocumentTaxService } from '../document-tax/document-tax.service';
 import { DocumentDetailsService } from '../document-details/document-details.service';
 import { DocumentDetails } from '../document-details/entities/document-details.entity';
 import { DocumentService } from './services/document.service';
+import { ScannConfidenceModule } from 'src/scann-confidence/scann-confidence.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { DocumentService } from './services/document.service';
       DocumentTax,
       DocumentDetails,
     ]),
+    ScannConfidenceModule,
   ],
   controllers: [DocumentAiController],
   providers: [
@@ -29,4 +31,4 @@ import { DocumentService } from './services/document.service';
     DocumentDetailsService,
   ],
 })
-export class DocumentAiModule {}
+export class DocumentModule {}
