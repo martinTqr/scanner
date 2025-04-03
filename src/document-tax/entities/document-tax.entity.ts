@@ -1,3 +1,4 @@
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { Document } from '../../document/entities/document.entity';
 import {
   Column,
@@ -34,4 +35,20 @@ export class DocumentTax {
 
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt: Date;
+}
+
+export class EditTax {
+  @IsOptional()
+  @IsString()
+  name: string;
+
+  @IsOptional()
+  @IsNumber()
+  value: number;
+}
+
+export class EditTaxByDocument extends EditTax {
+  @IsNumber()
+  @IsNotEmpty()
+  id: number;
 }

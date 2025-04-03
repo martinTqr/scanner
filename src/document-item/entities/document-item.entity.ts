@@ -1,3 +1,4 @@
+import { IsNumber, IsOptional, IsString } from 'class-validator';
 import {
   Column,
   CreateDateColumn,
@@ -46,4 +47,35 @@ export class DocumentItem {
 
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt: Date;
+}
+
+export class EditItemDto {
+  @IsOptional()
+  @IsString()
+  name: string;
+
+  @IsOptional()
+  @IsString()
+  description: string;
+
+  @IsOptional()
+  @IsNumber()
+  quantity: number;
+
+  @IsOptional()
+  @IsNumber()
+  unitPrice: number;
+
+  @IsOptional()
+  @IsString()
+  bonus: string;
+
+  @IsOptional()
+  @IsNumber()
+  amount: number;
+}
+
+export class EditItemByDocumentDto extends EditItemDto {
+  @IsNumber()
+  id: number;
 }

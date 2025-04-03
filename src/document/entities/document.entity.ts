@@ -51,12 +51,14 @@ export class Document {
   @OneToMany(() => DocumentItem, (document) => document.document, {
     nullable: true,
     eager: true,
+    cascade: true,
   })
   items: DocumentItem[];
 
   @OneToMany(() => DocumentTax, (document) => document.document, {
     nullable: true,
     eager: true,
+    cascade: true,
   })
   taxes?: DocumentTax[];
 

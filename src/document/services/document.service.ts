@@ -9,11 +9,17 @@ import { Between, FindOptionsWhere, Repository } from 'typeorm';
 import { DocumentDetailsService } from '../../document-details/document-details.service';
 import { DocumentItemService } from '../../document-item/document-item.service';
 import { NewDocumentItem } from '../../document-item/dto/document-item.dto';
-import { DocumentItem } from '../../document-item/entities/document-item.entity';
+import {
+  DocumentItem,
+  EditItemByDocumentDto,
+} from '../../document-item/entities/document-item.entity';
 import { DocumentTaxService } from '../../document-tax/document-tax.service';
 import { NewDocumentTax } from '../../document-tax/dto/document.tax.dto';
-import { DocumentTax } from '../../document-tax/entities/document-tax.entity';
-import { GetDocumentDto } from '../dto/document.dto';
+import {
+  DocumentTax,
+  EditTaxByDocument,
+} from '../../document-tax/entities/document-tax.entity';
+import { EditDocumentDto, GetDocumentDto } from '../dto/document.dto';
 import { Document } from '../entities/document.entity';
 import {
   DocumentType,
@@ -51,19 +57,30 @@ export class DocumentService {
     );
   }
 
+  async getDocumentById(id): Promise<Document> {
+    return this._documentRepository.findOneBy({ id });
+  }
+
   async getDocumentPdf(id: number): Promise<fs.ReadStream> {
-    const document = await this._documentRepository.findOneBy({ id });
-    if (!document) {
-      throw new BadRequestException('Documento no encontrado');
-    }
-    const file = fs.createReadStream(
-      path.join(
+    try {
+      const document = await this.getDocumentById(id);
+      if (!document) {
+        throw new BadRequestException('Documento no encontrado');
+      }
+
+      const filePath = path.join(
         process.cwd(),
         'uploads',
         `${document.id}-${document.details.fileName}`,
-      ),
-    );
-    return file;
+      );
+
+      await fs.promises.access(filePath, fs.constants.F_OK);
+
+      return fs.createReadStream(filePath);
+    } catch (e) {
+      console.error('Error al obtener el PDF:', e);
+      throw new BadRequestException('Archivo no encontrado o error al leerlo');
+    }
   }
 
   async createNewDocument(data: {
@@ -103,7 +120,7 @@ export class DocumentService {
       tax.properties.forEach(
         (property) => (documentTax[property.type] = this.getValue(property)),
       );
-      const newDocumentTax = await this._documentTaxService.createDocumentTax(
+      const newDocumentTax = await this._documentTaxService.createTax(
         documentTax as NewDocumentTax,
       );
       createdTaxes.push(newDocumentTax);
@@ -118,25 +135,49 @@ export class DocumentService {
       item.properties.forEach(
         (property) => (documentItem[property.type] = this.getValue(property)),
       );
-      const newDocumentItem =
-        await this._documentItemService.createDocumentItem(
-          documentItem as NewDocumentItem,
-        );
+      const newDocumentItem = await this._documentItemService.createItem(
+        documentItem as NewDocumentItem,
+      );
       createdItems.push(newDocumentItem);
     }
     return createdItems;
   }
 
+  async editDocument(id: number, newData: EditDocumentDto): Promise<Document> {
+    const document = await this.getDocumentById(id);
+    if (newData.items) this.validItemsIds(document, newData.items);
+    if (newData.taxes) this.validTaxesIds(document, newData.taxes);
+    this._documentRepository.merge(document, newData);
+
+    return this._documentRepository.save(document);
+  }
+
+  validItemsIds(document: Document, items: EditItemByDocumentDto[]) {
+    const documentItemsIds = document.items.map((item) => item.id);
+    const itemsIdsIncluded = items.every((item) =>
+      documentItemsIds.includes(item.id),
+    );
+    if (!itemsIdsIncluded)
+      throw new BadRequestException(
+        'Los ids de los items no coinciden con los del documento',
+      );
+  }
+
+  validTaxesIds(document: Document, taxes: EditTaxByDocument[]) {
+    const documentTaxesIds = document.taxes.map((tax) => tax.id);
+    const taxesIdsIncluded = taxes.every((tax) =>
+      documentTaxesIds.includes(tax.id),
+    );
+    if (!taxesIdsIncluded)
+      throw new BadRequestException(
+        'Los ids de los impuestos no coinciden con los del documento',
+      );
+  }
+
   savePdf(documentId: number, file: any) {
     const base64 = file.buffer.toString('base64');
     const fileBuffer = Buffer.from(base64, 'base64'); // If base64 encoded
-    const uploadDir = path.join(__dirname, '..', '..', 'uploads');
-
-    // Ensure the upload directory exists
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
+    const uploadDir = path.join(process.cwd(), 'uploads');
     const fileName = `${documentId}-${file.originalname}`;
     const filePath = path.join(uploadDir, fileName);
 

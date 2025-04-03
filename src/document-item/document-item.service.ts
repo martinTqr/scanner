@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { DocumentItem } from './entities/document-item.entity';
 import { NewDocumentItem } from './dto/document-item.dto';
+import { DocumentItem } from './entities/document-item.entity';
 
 @Injectable()
 export class DocumentItemService {
@@ -11,7 +11,7 @@ export class DocumentItemService {
     private _documentItemRepository: Repository<DocumentItem>,
   ) {}
 
-  async createDocumentItem(data: NewDocumentItem) {
+  async createItem(data: NewDocumentItem) {
     const documentItem = this._documentItemRepository.create(data);
     return await this._documentItemRepository.save(documentItem);
   }

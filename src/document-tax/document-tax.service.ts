@@ -11,7 +11,7 @@ export class DocumentTaxService {
     private _documentTaxRepository: Repository<DocumentTax>,
   ) {}
 
-  async createDocumentTax(data: NewDocumentTax) {
+  async createTax(data: NewDocumentTax) {
     const documentTax = await this._documentTaxRepository.create(data);
     return await this._documentTaxRepository.save(documentTax);
   }
