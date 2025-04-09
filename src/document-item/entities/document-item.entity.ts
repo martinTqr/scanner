@@ -18,10 +18,25 @@ export class DocumentItem {
   id: number;
 
   @Column({ type: 'varchar', length: 255, default: '' })
+  code: string;
+
+  @Column({ type: 'varchar', length: 255, default: '' })
+  remito: string;
+
+  @Column({ type: 'varchar', length: 255, default: '' })
+  order: string;
+
+  @Column({ type: 'varchar', length: 255, default: '' })
   name: string;
 
   @Column({ type: 'varchar', length: 255, default: '' })
   description: string;
+
+  @Column({ type: 'varchar', length: 255, default: '' })
+  dimensions: string;
+
+  @Column({ type: 'varchar', length: 255, default: '' })
+  unit: string;
 
   @Column({ type: 'float', default: 0 })
   quantity: number;
@@ -29,8 +44,26 @@ export class DocumentItem {
   @Column({ type: 'float', default: 0 })
   unitPrice: number;
 
-  @Column({ type: 'varchar', length: 255, default: '' })
-  bonus: string;
+  @Column({ name: 'bonus_1', type: 'varchar', length: 255, default: '' })
+  bonus1: string;
+
+  @Column({ name: 'bonus_2', type: 'varchar', length: 255, default: '' })
+  bonus2: string;
+
+  @Column({ name: 'bonus_3', type: 'varchar', length: 255, default: '' })
+  bonus3: string;
+
+  @Column({ name: 'bonus_4', type: 'varchar', length: 255, default: '' })
+  bonus4: string;
+
+  @Column({ nullable: true, type: 'varchar', length: 255 })
+  weight: string;
+
+  @Column({ nullable: true, type: 'varchar', length: 255 })
+  length: string;
+
+  @Column({ nullable: true, type: 'varchar', length: 255 })
+  thickness: string;
 
   @Column({ type: 'float', default: 0 })
   amount: number;
@@ -52,11 +85,31 @@ export class DocumentItem {
 export class EditItemDto {
   @IsOptional()
   @IsString()
+  code: string;
+
+  @IsOptional()
+  @IsString()
+  remito: string;
+
+  @IsOptional()
+  @IsString()
+  order: string;
+
+  @IsOptional()
+  @IsString()
   name: string;
 
   @IsOptional()
   @IsString()
   description: string;
+
+  @IsOptional()
+  @IsString()
+  dimensions: string;
+
+  @IsOptional()
+  @IsString()
+  unit: string;
 
   @IsOptional()
   @IsNumber()
@@ -68,7 +121,35 @@ export class EditItemDto {
 
   @IsOptional()
   @IsString()
-  bonus: string;
+  bonus1: string;
+
+  @IsOptional()
+  @IsString()
+  bonus2: string;
+
+  @IsOptional()
+  @IsString()
+  bonus3: string;
+
+  @IsOptional()
+  @IsString()
+  bonus4: string;
+
+  @IsOptional()
+  @IsString()
+  weight: string;
+
+  @IsOptional()
+  @IsString()
+  length: string;
+
+  @IsOptional()
+  @IsString()
+  thickness: string;
+
+  @IsOptional()
+  @IsString()
+  long: string;
 
   @IsOptional()
   @IsNumber()

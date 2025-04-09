@@ -41,14 +41,16 @@ export class ScannConfidenceService {
     };
 
     const fieldScores = await this.getConfidenceFields();
-
+    console.log(fieldScores);
     let obtainedScore = 0;
     const maxScorePossible = this.calculateTotalScore(
       documentData,
       fieldScores,
     );
+    console.log(maxScorePossible);
     for (const field of fieldScores) {
       const score = this.getFieldValueScore(documentData, field);
+      console.log(field, score);
       if (score) obtainedScore += score;
     }
 

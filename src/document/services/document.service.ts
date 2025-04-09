@@ -39,7 +39,7 @@ export class DocumentService {
   ) {}
 
   async getDocuments(queryParams: GetDocumentDto): Promise<Document[]> {
-    const { startDate, endDate, ...rest } = queryParams;
+    const { startDate, endDate, batch, ...rest } = queryParams;
     const params = Object.keys(rest);
     const filters: FindOptionsWhere<Document> = params.reduce((acum, key) => {
       if (rest[key]) {
@@ -47,6 +47,11 @@ export class DocumentService {
       }
       return acum;
     }, {});
+    if (batch) {
+      filters.details = {
+        batch,
+      };
+    }
 
     if (startDate || endDate) {
       filters.date = Between(startDate, endDate);
@@ -104,7 +109,7 @@ export class DocumentService {
       userId: '',
       confidence,
     });
-    return await this._documentRepository.save(document);
+    if (document) return await this._documentRepository.save(document);
   }
 
   async createDocumentDetails(
@@ -219,6 +224,11 @@ export class DocumentService {
       if (type === 'documentType') {
         document[type] = this.getDocumentType(document[type]);
       }
+
+      //TODO: VER esto
+      if (type === 'total' || type === 'caeNumber') {
+        document[type] = parseFloat(String(document[type]).replace(/,/g, '.'));
+      }
       if (
         normalizedValueFormat &&
         normalizedValueFormat.structuredValue === 'dateValue'
@@ -265,12 +275,12 @@ export class DocumentService {
     value =
       property.normalizedValue?.text ||
       property.mentionText.replaceAll('\n', ' ');
-    if (
-      property.type === 'quantity' ||
-      property.type === 'amount' ||
-      property.type === 'unitPrice'
-    ) {
+    const floatValues = ['quantity', 'amount', 'unitPrice', 'total'];
+    if (floatValues.includes(property.type)) {
       value = parseFloat(value.replace(/,/g, '.'));
+    }
+    if (property.type === 'description' && value.length > 255) {
+      value = value.substring(0, 255);
     }
     return value;
   }

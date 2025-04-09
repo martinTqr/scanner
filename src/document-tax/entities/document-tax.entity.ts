@@ -17,10 +17,10 @@ export class DocumentTax {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 255, default: '' })
   name: string;
 
-  @Column({ type: 'float' })
+  @Column({ type: 'float', default: 0 })
   value: number;
 
   @ManyToOne(() => Document, (document) => document.taxes, { nullable: true })

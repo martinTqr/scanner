@@ -62,7 +62,12 @@ export class Document {
   })
   taxes?: DocumentTax[];
 
-  @Column({ type: 'enum', enum: DocumentType, nullable: true })
+  @Column({
+    name: 'document_type',
+    type: 'enum',
+    enum: DocumentType,
+    nullable: true,
+  })
   documentType: DocumentType;
 
   @OneToOne(
@@ -73,8 +78,40 @@ export class Document {
   @JoinColumn({ name: 'document_id' })
   details: DocumentDetails;
 
-  @Column({ type: 'enum', enum: ReceiptType, nullable: true })
+  @Column({
+    name: 'receipt_type',
+    type: 'enum',
+    enum: ReceiptType,
+    nullable: true,
+  })
   receiptType: ReceiptType;
+
+  @Column({
+    name: 'sell_condition',
+    nullable: true,
+    type: 'varchar',
+    length: 255,
+  })
+  sellCondition: string;
+
+  @Column({
+    name: 'cae_number',
+    type: 'bigint',
+  })
+  caeNumber: number;
+
+  @Column({
+    name: 'cae_expiration_date',
+    nullable: true,
+    type: 'datetime',
+  })
+  caeExpirationDate: string;
+
+  @Column({ nullable: true, type: 'varchar', length: 255 })
+  currency: string;
+
+  @Column({ type: 'float', default: 0 })
+  total: number;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

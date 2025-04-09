@@ -1,6 +1,6 @@
 const projectId = 'quickdocumentai';
 const location = 'us'; // Format is 'us' or 'eu'
-const processorId = 'c750913e30f183a6'; // Create processor in Cloud Console
+const processorId = '5277e73861e9a359'; // Create processor in Cloud Console
 
 export const googleCloudConfig = {
   projectId,

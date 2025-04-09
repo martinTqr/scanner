@@ -50,6 +50,10 @@ export class GetDocumentDto {
 
   @IsString()
   @IsOptional()
+  currency: string;
+
+  @IsString()
+  @IsOptional()
   batch: string;
 }
 
@@ -105,4 +109,8 @@ export class EditDocumentDto {
     )}`,
   })
   receiptType: ReceiptType;
+
+  @IsString()
+  @IsOptional()
+  currency: string;
 }
