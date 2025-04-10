@@ -110,7 +110,16 @@ export class Document {
   @Column({ nullable: true, type: 'varchar', length: 255 })
   currency: string;
 
-  @Column({ type: 'float', default: 0 })
+  @Column({
+    type: 'decimal',
+    default: 0,
+    scale: 2,
+    precision: 10,
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string) => parseFloat(value),
+    },
+  })
   total: number;
 
   @CreateDateColumn({ name: 'created_at' })

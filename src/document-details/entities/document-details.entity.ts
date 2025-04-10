@@ -12,7 +12,7 @@ export class DocumentDetails {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'float', nullable: true })
+  @Column({ type: 'int', nullable: true })
   confidence: number;
 
   @Column({ name: 'file_name', type: 'varchar', length: 255 })

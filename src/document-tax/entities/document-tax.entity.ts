@@ -20,7 +20,16 @@ export class DocumentTax {
   @Column({ type: 'varchar', length: 255, default: '' })
   name: string;
 
-  @Column({ type: 'float', default: 0 })
+  @Column({
+    type: 'decimal',
+    default: 0,
+    scale: 2,
+    precision: 10,
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string) => parseFloat(value),
+    },
+  })
   value: number;
 
   @ManyToOne(() => Document, (document) => document.taxes, { nullable: true })

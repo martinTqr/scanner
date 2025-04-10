@@ -27,6 +27,7 @@ import {
   ReceiptType,
 } from '../intefaces/document-ai.interfaces';
 import { ScannConfidenceService } from 'src/scann-confidence/scann-confidence.service';
+import { parseWeirdNumber } from 'src/config/helpers/parseWeirdNumber';
 @Injectable()
 export class DocumentService {
   constructor(
@@ -143,6 +144,7 @@ export class DocumentService {
       const newDocumentItem = await this._documentItemService.createItem(
         documentItem as NewDocumentItem,
       );
+      console.log(newDocumentItem);
       createdItems.push(newDocumentItem);
     }
     return createdItems;
@@ -277,7 +279,9 @@ export class DocumentService {
       property.mentionText.replaceAll('\n', ' ');
     const floatValues = ['quantity', 'amount', 'unitPrice', 'total'];
     if (floatValues.includes(property.type)) {
-      value = parseFloat(value.replace(/,/g, '.'));
+      value = parseWeirdNumber(value);
+
+      console.log(property.type, value);
     }
     if (property.type === 'description' && value.length > 255) {
       value = value.substring(0, 255);

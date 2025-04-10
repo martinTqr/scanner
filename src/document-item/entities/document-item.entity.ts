@@ -38,10 +38,29 @@ export class DocumentItem {
   @Column({ type: 'varchar', length: 255, default: '' })
   unit: string;
 
-  @Column({ type: 'float', default: 0 })
+  @Column({
+    type: 'decimal',
+    default: 0,
+    scale: 2,
+    precision: 10,
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string) => parseFloat(value),
+    },
+  })
   quantity: number;
 
-  @Column({ type: 'float', default: 0 })
+  @Column({
+    name: 'unit_price',
+    type: 'decimal',
+    default: 0,
+    scale: 2,
+    precision: 10,
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string) => parseFloat(value),
+    },
+  })
   unitPrice: number;
 
   @Column({ name: 'bonus_1', type: 'varchar', length: 255, default: '' })
@@ -65,7 +84,16 @@ export class DocumentItem {
   @Column({ nullable: true, type: 'varchar', length: 255 })
   thickness: string;
 
-  @Column({ type: 'float', default: 0 })
+  @Column({
+    type: 'decimal',
+    default: 0,
+    scale: 2,
+    precision: 10,
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string) => parseFloat(value),
+    },
+  })
   amount: number;
 
   @ManyToOne(() => Document, (document) => document.items)
