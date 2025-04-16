@@ -1,5 +1,6 @@
 import { google } from '@google-cloud/documentai/build/protos/protos';
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { createObjectCsvStringifier } from 'csv-writer';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -65,6 +66,142 @@ export class DocumentService {
 
   async getDocumentById(id): Promise<Document> {
     return this._documentRepository.findOneBy({ id });
+  }
+
+  async exportToCSV(
+    queryParams: GetDocumentDto,
+  ): Promise<{ documents: string; items: string; taxes: string }> {
+    const documents = await this.getDocuments(queryParams);
+
+    // Export documents
+    const documentsData = documents.map((doc) => ({
+      id: doc.id,
+      providerName: doc.providerName || '',
+      providerCuit: doc.providerCuit || '',
+      code: doc.code || '',
+      date: this.formatDate(doc.date),
+      expirationDate: this.formatDate(doc.expirationDate),
+      observations: doc.observations || '',
+      documentType: doc.documentType || '',
+      receiptType: doc.receiptType || '',
+      sellCondition: doc.sellCondition || '',
+      caeNumber: doc.caeNumber || '',
+      createdAt: this.formatDate(doc.createdAt),
+    }));
+
+    const documentsCsvStringifier = createObjectCsvStringifier({
+      header: [
+        { id: 'id', title: 'ID' },
+        { id: 'providerName', title: 'Nombre proveedor' },
+        { id: 'providerCuit', title: 'CUIT proveedor' },
+        { id: 'code', title: 'Codigo' },
+        { id: 'date', title: 'Fecha' },
+        { id: 'expirationDate', title: 'Vencimiento' },
+        { id: 'observations', title: 'Observaciones' },
+        { id: 'documentType', title: 'Tipo de Documento' },
+        { id: 'receiptType', title: 'Tipo de Recibo' },
+        { id: 'sellCondition', title: 'Condicion de Venta' },
+        { id: 'caeNumber', title: 'CAE Numero' },
+        { id: 'createdAt', title: 'Creado el' },
+      ],
+    });
+
+    // Export items
+    const itemsData = [];
+    for (const doc of documents) {
+      doc.items.forEach((item) => {
+        itemsData.push({
+          id: item.id,
+          documentId: doc.id,
+          code: item.code || '',
+          remito: item.remito || '',
+          order: item.order || '',
+          name: item.name || '',
+          description: item.description || '',
+          dimensions: item.dimensions || '',
+          unit: item.unit || '',
+          quantity: item.quantity || 0,
+          unitPrice: item.unitPrice || 0,
+          amount: item.amount || 0,
+          bonus1: item.bonus1 || '',
+          bonus2: item.bonus2 || '',
+          bonus3: item.bonus3 || '',
+          bonus4: item.bonus4 || '',
+          weight: item.weight || '',
+          length: item.length || '',
+          thickness: item.thickness || '',
+          createdAt: this.formatDate(item.createdAt),
+          updatedAt: this.formatDate(item.updatedAt),
+          deletedAt: this.formatDate(item.deletedAt),
+        });
+      });
+    }
+
+    const itemsCsvStringifier = createObjectCsvStringifier({
+      header: [
+        { id: 'id', title: 'ID' },
+        { id: 'documentId', title: 'Id Documento' },
+        { id: 'code', title: 'Codigo' },
+        { id: 'remito', title: 'Remito' },
+        { id: 'order', title: 'Orden' },
+        { id: 'name', title: 'Nombre' },
+        { id: 'description', title: 'Descripcion' },
+        { id: 'dimensions', title: 'Dimensiones' },
+        { id: 'unit', title: 'Unidad' },
+        { id: 'quantity', title: 'Cantidad' },
+        { id: 'unitPrice', title: 'Precio Unitario' },
+        { id: 'amount', title: 'Monto' },
+        { id: 'bonus1', title: 'Bonus 1' },
+        { id: 'bonus2', title: 'Bonus 2' },
+        { id: 'bonus3', title: 'Bonus 3' },
+        { id: 'bonus4', title: 'Bonus 4' },
+        { id: 'weight', title: 'Peso' },
+        { id: 'length', title: 'Longitud' },
+        { id: 'thickness', title: 'Grosor' },
+      ],
+    });
+
+    // Export taxes
+    const taxesData = [];
+    for (const doc of documents) {
+      doc.taxes.forEach((tax) => {
+        taxesData.push({
+          id: tax.id,
+          documentId: doc.id,
+          name: tax.name || '',
+          value: tax.value || 0,
+          createdAt: this.formatDate(tax.createdAt),
+          updatedAt: this.formatDate(tax.updatedAt),
+          deletedAt: this.formatDate(tax.deletedAt),
+        });
+      });
+    }
+
+    const taxesCsvStringifier = createObjectCsvStringifier({
+      header: [
+        { id: 'id', title: 'ID' },
+        { id: 'documentId', title: 'Id Documento' },
+        { id: 'name', title: 'Nombre' },
+        { id: 'value', title: 'Valor' },
+      ],
+    });
+
+    // Generate CSV strings with headers
+    const documentsCsvString =
+      documentsCsvStringifier.getHeaderString() +
+      documentsCsvStringifier.stringifyRecords(documentsData);
+    const itemsCsvString =
+      itemsCsvStringifier.getHeaderString() +
+      itemsCsvStringifier.stringifyRecords(itemsData);
+    const taxesCsvString =
+      taxesCsvStringifier.getHeaderString() +
+      taxesCsvStringifier.stringifyRecords(taxesData);
+
+    return {
+      documents: documentsCsvString,
+      items: itemsCsvString,
+      taxes: taxesCsvString,
+    };
   }
 
   async getDocumentPdf(id: number): Promise<fs.ReadStream> {
@@ -346,5 +483,17 @@ export class DocumentService {
     processorFields.push(...processProperties(mainEntityType.properties));
 
     return processorFields;
+  }
+
+  private formatDate(date: string | Date): string {
+    if (!date) return '';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '';
+
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const year = d.getFullYear();
+
+    return `${day}/${month}/${year}`;
   }
 }

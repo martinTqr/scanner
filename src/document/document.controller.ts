@@ -15,6 +15,7 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { DocumentAiService } from './services/document-ai.service';
 import { EditDocumentDto, GetDocumentDto } from './dto/document.dto';
 import { DocumentService } from './services/document.service';
+import * as archiver from 'archiver';
 
 @Controller('documents')
 export class DocumentAiController {
@@ -41,6 +42,33 @@ export class DocumentAiController {
     res.setHeader('Content-Disposition', `inline; filename="30-wtf.pdf"`);
 
     file.pipe(res);
+  }
+
+  @Get('export/csv')
+  async exportToCSV(@Query() queryParams: GetDocumentDto, @Res() res) {
+    const csvData = await this._documentService.exportToCSV(queryParams);
+
+    // Create a zip file containing all CSV files
+    const archive = archiver('zip', {
+      zlib: { level: 9 }, // Maximum compression
+    });
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename=documents-export.zip',
+    );
+
+    // Pipe the archive to the response
+    archive.pipe(res);
+
+    // Add CSV content to the archive
+    archive.append(Buffer.from(csvData.documents), { name: 'documents.csv' });
+    archive.append(Buffer.from(csvData.items), { name: 'document_items.csv' });
+    archive.append(Buffer.from(csvData.taxes), { name: 'document_taxes.csv' });
+
+    // Finalize the archive
+    await archive.finalize();
   }
 
   @Patch('edit/:id')

@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsEnum,
@@ -9,7 +10,6 @@ import { EnumToString } from 'src/config/helpers/enumToString';
 import { EditItemByDocumentDto } from 'src/document-item/entities/document-item.entity';
 import { EditTaxByDocument } from 'src/document-tax/entities/document-tax.entity';
 import { DocumentType, ReceiptType } from '../intefaces/document-ai.interfaces';
-import { Type } from 'class-transformer';
 
 export class GetDocumentDto {
   @IsString()
@@ -113,4 +113,7 @@ export class EditDocumentDto {
   @IsString()
   @IsOptional()
   currency: string;
+
+  @IsOptional()
+  total: number;
 }

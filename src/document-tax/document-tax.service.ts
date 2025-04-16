@@ -12,7 +12,7 @@ export class DocumentTaxService {
   ) {}
 
   async createTax(data: NewDocumentTax) {
-    const documentTax = await this._documentTaxRepository.create(data);
+    const documentTax = this._documentTaxRepository.create(data);
     return await this._documentTaxRepository.save(documentTax);
   }
 }
