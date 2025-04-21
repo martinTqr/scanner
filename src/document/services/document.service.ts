@@ -281,7 +281,6 @@ export class DocumentService {
       const newDocumentItem = await this._documentItemService.createItem(
         documentItem as NewDocumentItem,
       );
-      console.log(newDocumentItem);
       createdItems.push(newDocumentItem);
     }
     return createdItems;
@@ -417,8 +416,6 @@ export class DocumentService {
     const floatValues = ['quantity', 'amount', 'unitPrice', 'total'];
     if (floatValues.includes(property.type)) {
       value = parseWeirdNumber(value);
-
-      console.log(property.type, value);
     }
     if (property.type === 'description' && value.length > 255) {
       value = value.substring(0, 255);
